@@ -1,0 +1,132 @@
+﻿
+	modified:   
+extmod/extmod.cmake
+	modified:   
+extmod/modnetwork.h
+	modified:   extmod/n
+imble/modbluetooth_ni
+mble.c
+	modified:   
+ports/esp32/adc.c
+	modified:   ports/es
+p32/esp32_common.cmak
+e
+	modified:   ports/es
+p32/gccollect.c
+	modified:   ports/es
+p32/machine_i2c.c
+	modified:   ports/es
+p32/machine_pin.h
+	modified:   ports/es
+p32/machine_pwm.c
+	modified:   ports/es
+p32/machine_timer.c
+	modified:   
+ports/esp32/main.c
+	modified:   ports/es
+p32/modesp32.c
+	modified:   ports/es
+p32/modespnow.c
+	modified:   ports/es
+p32/modmachine.c
+	modified:   ports/es
+p32/modnetwork.h
+	modified:   ports/es
+p32/modnetwork_global
+s.h
+	modified:   ports/es
+p32/modsocket.c
+	modified:   ports/es
+p32/mpconfigport.h
+	modified:   ports/es
+p32/mphalport.c
+	modified:   ports/es
+p32/mphalport.h
+	modified:   ports/es
+p32/mpnimbleport.c
+	modified:   ports/es
+p32/mpthreadport.c
+	modified:   ports/es
+p32/network_common.c
+	modified:   ports/es
+p32/network_ppp.c
+	modified:   ports/es
+p32/network_wlan.c
+	modified:   ports/es
+p32/panichandler.c
+	modified:   
+ports/esp32/uart.c
+	modified:   
+ports/esp32/uart.h
+	modified:   
+ports/esp32/usb.c
+	modified:   
+ports/esp32/usb.h
+	modified:   
+py/misc.h
+	modified:   
+py/mkrules.cmake
+	modified:   
+py/mpstate.h
+	modified:   
+py/persistentcode.c
+	modified:   
+py/usermod.cmake
+	ports/esp32/boards/E
+LECROW_P4_ADVANCED/mp
+configboard.cmake
+	ports/esp32/boards/E
+LECROW_P4_ADVANCED/mp
+configboard.h
+	ports/esp32/componen
+ts/esp32_p4_function_
+ev_board/bsp_stc8h1kx
+x.c
+	ports/esp32/componen
+ts/esp32_p4_function_
+ev_board/bsp_stc8h1kx
+x.h
+	ports/esp32/componen
+ts/esp32_p4_function_
+ev_board/esp32_p4_fun
+ction_ev_board.c
+	ports/esp32/componen
+ts/esp32_p4_function_
+ev_board/include/bsp/
+config.h
+	ports/esp32/componen
+ts/esp32_p4_function_
+ev_board/include/bsp/
+display.h
+	ports/esp32/componen
+ts/esp32_p4_function_
+ev_board/include/bsp/
+esp-bsp.h
+	ports/esp32/componen
+ts/esp32_p4_function_
+ev_board/include/bsp/
+esp32_p4_function_ev_
+board.h
+	ports/esp32/componen
+ts/esp32_p4_function_
+ev_board/include/bsp/
+touch.h
+	ports/esp32/componen
+ts/esp32_p4_function_
+ev_board/priv_include
+/bsp_err_check.h
+	ports/esp32/componen
+ts/esp_lcd_ek79007/es
+p_lcd_ek79007.c
+	ports/esp32/componen
+ts/esp_lcd_ek79007/in
+clude/esp_lcd_ek79007
+.h
+	ports/esp32/componen
+ts/esp_lcd_ek79007/te
+st_apps/main/test_esp
+_lcd_ek79007.c
+	ports/esp32/mod_elec
+row.c
+
+

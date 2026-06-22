@@ -1,0 +1,30 @@
+# Micropython build artifacts
+build/
+micropython/micropython/ports/esp32/build-*/
+*.bin
+*.elf
+*.map
+
+# Firmware for distribution
+!firmware/
+!firmware/*.bin
+
+# Python environment
+.venv/
+__pycache__/
+*.pyc
+
+# IDE settings
+.vscode/
+.idea/
+
+# MicroPython specific
+/diagnostics/
+/tmp/
+.gemini/
+
+# System files
+*.pdf
+*.jpg
+.DS_Store
+Thumbs.db
