@@ -2,8 +2,8 @@
 import gc
 import time
 
-# Give the system and terminal a moment to settle after power-up
-time.sleep(2)
+# Give the terminal link a brief moment to stabilize
+time.sleep_ms(500)
 
 print("Starting Web Clock...")
 import web_clock

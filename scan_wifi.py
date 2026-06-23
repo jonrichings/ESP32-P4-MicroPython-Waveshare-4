@@ -7,16 +7,13 @@ RESET_PIN = 32
 def scan():
     print("Initializing WLAN interface...")
     
-    # Ensure WiFi slave is NOT held in reset
+    # Ensure WiFi slave is active (C firmware already reset it at boot)
     try:
         rst = machine.Pin(RESET_PIN, machine.Pin.OUT)
-        print("Toggling reset pin to ensure C6 is boot-active...")
-        rst.value(1) # Reset ON
-        time.sleep_ms(100)
         rst.value(0) # Reset OFF (Run)
-        time.sleep(1) # Wait for co-processor to boot
+        time.sleep_ms(500) # Wait for stability
     except Exception as e:
-        print("Failed to toggle hardware reset:", e)
+        print("Failed to configure reset pin:", e)
 
     wlan = network.WLAN(network.STA_IF)
     try:

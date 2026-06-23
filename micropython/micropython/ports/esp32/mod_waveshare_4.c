@@ -257,6 +257,10 @@ static mp_obj_t waveshare_init(void) {
   // 6. Connect LVGL 9
   lv_tick_set_cb(waveshare_lv_tick_get_cb);
 
+  if (lv_display_get_next(NULL) == NULL) {
+      disp_handle = NULL;
+  }
+
   if (disp_handle == NULL) {
       disp_handle = lv_display_create(720, 720);
       lv_display_set_flush_cb(disp_handle, disp_flush_cb);
@@ -323,7 +327,11 @@ static mp_obj_t waveshare_init(void) {
     }
   }
 
-  if (touch_panel) {
+  if (lv_indev_get_next(NULL) == NULL) {
+      touch_indev = NULL;
+  }
+
+  if (touch_panel && touch_indev == NULL) {
     lv_indev_t *indev = lv_indev_create();
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev, touchpad_read_cb);
@@ -446,6 +454,126 @@ static mp_obj_t waveshare_beep(mp_obj_t freq_obj, mp_obj_t duration_obj) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_2(waveshare_beep_obj, waveshare_beep);
 
+static esp_err_t es8311_write_reg(uint8_t reg, uint8_t val) {
+  if (internal_i2c_bus == NULL) {
+    return ESP_ERR_INVALID_STATE;
+  }
+  i2c_device_config_t dev_cfg = {
+      .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+      .device_address = 0x18,
+      .scl_speed_hz = 100000,
+  };
+  i2c_master_dev_handle_t dev_handle;
+  esp_err_t err = i2c_master_bus_add_device(internal_i2c_bus, &dev_cfg, &dev_handle);
+  if (err != ESP_OK) {
+    return err;
+  }
+  uint8_t buf[2] = {reg, val};
+  err = i2c_master_transmit(dev_handle, buf, 2, -1);
+  i2c_master_bus_rm_device(dev_handle);
+  return err;
+}
+
+static esp_err_t es8311_read_reg(uint8_t reg, uint8_t *val) {
+  if (internal_i2c_bus == NULL) {
+    return ESP_ERR_INVALID_STATE;
+  }
+  i2c_device_config_t dev_cfg = {
+      .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+      .device_address = 0x18,
+      .scl_speed_hz = 100000,
+  };
+  i2c_master_dev_handle_t dev_handle;
+  esp_err_t err = i2c_master_bus_add_device(internal_i2c_bus, &dev_cfg, &dev_handle);
+  if (err != ESP_OK) {
+    return err;
+  }
+  err = i2c_master_transmit_receive(dev_handle, &reg, 1, val, 1, -1);
+  i2c_master_bus_rm_device(dev_handle);
+  return err;
+}
+
+static mp_obj_t waveshare_init_codec(mp_obj_t volume_db_obj) {
+  int volume_db = mp_obj_get_int(volume_db_obj);
+
+  // Enable Speaker Power Amplifier (GPIO 53, active high)
+  gpio_reset_pin((gpio_num_t)53);
+  gpio_set_direction((gpio_num_t)53, GPIO_MODE_OUTPUT);
+  gpio_set_level((gpio_num_t)53, 1);
+
+  // 1. Reset Sequence
+  es8311_write_reg(0x00, 0x1F);
+  vTaskDelay(pdMS_TO_TICKS(50));
+  es8311_write_reg(0x00, 0x00); // Release Reset
+
+  // 2. Configure default clocks / control
+  es8311_write_reg(0x01, 0x30);
+  es8311_write_reg(0x02, 0x00);
+  es8311_write_reg(0x03, 0x10);
+  es8311_write_reg(0x16, 0x24);
+  es8311_write_reg(0x04, 0x10);
+  es8311_write_reg(0x05, 0x00);
+  es8311_write_reg(0x0B, 0x00);
+  es8311_write_reg(0x0C, 0x00);
+  es8311_write_reg(0x10, 0x1F);
+  es8311_write_reg(0x11, 0x7F);
+  es8311_write_reg(0x00, 0x80); // Slave mode (MSC=0)
+
+  // 3. Clock source setup: use SCLK (BCLK) pin as master clock source
+  es8311_write_reg(0x01, 0xBF);
+
+  // 4. Configure dividers for standard sample rates in MCLK-less mode
+  es8311_write_reg(0x02, 0x18);
+  es8311_write_reg(0x05, 0x00);
+  es8311_write_reg(0x03, 0x10);
+  es8311_write_reg(0x04, 0x10);
+  es8311_write_reg(0x07, 0x00);
+  es8311_write_reg(0x08, 0xff);
+  es8311_write_reg(0x06, 0x03);
+
+  // 5. Format and bits: 16-bit normal I2S
+  es8311_write_reg(0x09, 0x0C);
+  es8311_write_reg(0x0A, 0x0C);
+
+  // 6. Power up ADC/DAC
+  es8311_write_reg(0x17, 0xBF);
+  es8311_write_reg(0x0E, 0x02);
+  es8311_write_reg(0x12, 0x00);
+  es8311_write_reg(0x14, 0x1A);
+  es8311_write_reg(0x0D, 0x01);
+  es8311_write_reg(0x15, 0x40);
+  es8311_write_reg(0x37, 0x08);
+  es8311_write_reg(0x45, 0x00);
+
+  // 7. Unmute & volume
+  es8311_write_reg(0x31, 0x00); // Unmute DAC
+  es8311_write_reg(0x32, volume_db);
+
+  // 8. Reference signals
+  es8311_write_reg(0x44, 0x50);
+
+  mp_printf(&mp_plat_print, "Codec ES8311 initialized successfully in C.\n");
+  return mp_const_true;
+}
+static MP_DEFINE_CONST_FUN_OBJ_1(waveshare_init_codec_obj, waveshare_init_codec);
+
+static mp_obj_t waveshare_set_codec_volume(mp_obj_t volume_db_obj) {
+  int volume_db = mp_obj_get_int(volume_db_obj);
+  es8311_write_reg(0x32, volume_db);
+  return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_1(waveshare_set_codec_volume_obj, waveshare_set_codec_volume);
+
+static mp_obj_t waveshare_check_codec(void) {
+  uint8_t id_high = 0, id_low = 0;
+  if (es8311_read_reg(0xFD, &id_high) == ESP_OK && es8311_read_reg(0xFE, &id_low) == ESP_OK) {
+    mp_printf(&mp_plat_print, "ES8311 Chip ID: 0x%02x 0x%02x\n", id_high, id_low);
+    return mp_const_true;
+  }
+  return mp_const_false;
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(waveshare_check_codec_obj, waveshare_check_codec);
+
 static const mp_rom_map_elem_t waveshare_module_globals_table[] = {
     {MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&waveshare_init_obj)},
     {MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&waveshare_deinit_module_obj)},
@@ -456,6 +584,9 @@ static const mp_rom_map_elem_t waveshare_module_globals_table[] = {
     {MP_ROM_QSTR(MP_QSTR_resume_display), MP_ROM_PTR(&waveshare_resume_display_obj)},
     {MP_ROM_QSTR(MP_QSTR_speaker_enable), MP_ROM_PTR(&waveshare_speaker_enable_obj)},
     {MP_ROM_QSTR(MP_QSTR_beep), MP_ROM_PTR(&waveshare_beep_obj)},
+    {MP_ROM_QSTR(MP_QSTR_init_codec), MP_ROM_PTR(&waveshare_init_codec_obj)},
+    {MP_ROM_QSTR(MP_QSTR_set_codec_volume), MP_ROM_PTR(&waveshare_set_codec_volume_obj)},
+    {MP_ROM_QSTR(MP_QSTR_check_codec), MP_ROM_PTR(&waveshare_check_codec_obj)},
 };
 static MP_DEFINE_CONST_DICT(waveshare_module_globals, waveshare_module_globals_table);
 const mp_obj_module_t mp_module_waveshare = {.base = {&mp_type_module}, .globals = (mp_obj_dict_t *)&waveshare_module_globals};
@@ -465,7 +596,37 @@ MP_REGISTER_MODULE(MP_QSTR_waveshare, mp_module_waveshare);
 extern void boardctrl_startup(void);
 void waveshare_startup(void) {
   printf("Waveshare 4\": Performing WiFi Slave Hardware Reset...\n");
-  // 1. Reset WiFi Slave (GPIO 32 is active high per sdkconfig)
+
+  // Force co-processor power-cycle by releasing LDO4 if already enabled or acquired
+  esp_ldo_channel_handle_t temp_ldo4 = NULL;
+  esp_ldo_channel_config_t ldo4_config = {.chan_id = 4, .voltage_mv = 3300};
+  if (esp_ldo_acquire_channel(&ldo4_config, &temp_ldo4) == ESP_OK) {
+      esp_ldo_release_channel(temp_ldo4);
+  }
+
+  // 1. Wait 300ms with LDO 4 OFF to let co-processor rails discharge fully to 0V (warm reset recovery)
+  vTaskDelay(pdMS_TO_TICKS(300));
+
+  // 2. Turn ON LDO 4 to power the co-processor and the ESP32-P4 VDD_SDIO domain
+  if (audio_pwr_chan == NULL) {
+      esp_ldo_acquire_channel(&ldo4_config, &audio_pwr_chan);
+  }
+  
+  // 3. Wait 100ms for power rails and decoupling capacitors to stabilize
+  vTaskDelay(pdMS_TO_TICKS(100));
+
+  // 4. Drive SDIO D3 pin (GPIO 17) high strongly to force the co-processor strapping pin (GPIO 9) high
+  gpio_config_t sdio_cfg = {
+      .pin_bit_mask = (1ULL << 17),
+      .mode = GPIO_MODE_OUTPUT,
+      .pull_up_en = GPIO_PULLUP_DISABLE,
+      .pull_down_en = GPIO_PULLDOWN_DISABLE,
+      .intr_type = GPIO_INTR_DISABLE,
+  };
+  gpio_config(&sdio_cfg);
+  gpio_set_level(17, 1); // Strong drive HIGH
+
+  // 5. Reset WiFi Slave (GPIO 32 is physically active-low: 0 = RESET, 1 = RUN)
   gpio_config_t rst_cfg = {
       .pin_bit_mask = (1ULL << 32),
       .mode = GPIO_MODE_OUTPUT,
@@ -473,18 +634,19 @@ void waveshare_startup(void) {
       .pull_down_en = 0,
   };
   gpio_config(&rst_cfg);
-  gpio_set_level(32, 1); // Reset ON
-  vTaskDelay(pdMS_TO_TICKS(100));
-  gpio_set_level(32, 0); // Reset OFF
-  vTaskDelay(pdMS_TO_TICKS(500)); // Wait for slave to boot
+  gpio_set_level(32, 0); // Reset ON (physically LOW = reset)
+  vTaskDelay(pdMS_TO_TICKS(300)); // 300ms solid reset pulse
+  gpio_set_level(32, 1); // Reset OFF (physically HIGH = releases reset, co-processor boots)
+  vTaskDelay(pdMS_TO_TICKS(100)); // Hold strapping pin driven high for 100ms after reset release
+
+  // 6. Revert GPIO 17 to input (high-impedance) so it doesn't conflict with SDIO
+  gpio_set_direction(17, GPIO_MODE_INPUT);
+
+  // 7. Wait the remainder of the 2000ms boot window (2000 - 100 - 300 - 100 = 1500ms)
+  vTaskDelay(pdMS_TO_TICKS(1500)); 
   printf("Waveshare 4\": Hardware Initialized.\n");
 
   boardctrl_startup();
-
-  if (audio_pwr_chan == NULL) {
-      esp_ldo_channel_config_t ldo4_config = {.chan_id = 4, .voltage_mv = 3300};
-      esp_ldo_acquire_channel(&ldo4_config, &audio_pwr_chan);
-  }
   if (internal_i2c_bus == NULL) {
       // Main I2C for Waveshare: SDA=7, SCL=8, disable internal pullups
       i2c_master_bus_config_t i2c_bus_cfg = {

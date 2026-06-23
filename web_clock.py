@@ -1,10 +1,7 @@
 import lvgl as lv
-try:
-    import waveshare as board
-    board_name = "Waveshare P4 8\""
-except ImportError:
-    import elecrow as board
-    board_name = "Elecrow P4 7\""
+import os
+import waveshare as board
+board_name = "Waveshare P4 4\""
 import network
 import time
 import ntp
@@ -100,12 +97,12 @@ def show_boot_message(text):
             ui_boot_label = lv.label(scr)
             # Ensure background is BLACK
             scr.set_style_bg_color(lv.color_hex(0x000000), 0)
-            scr.set_style_bg_opa(lv.OPA.COVER, 0)
+            scr.set_style_bg_opa(255, 0)
             
             font = lv.font_montserrat_28 if hasattr(lv, 'font_montserrat_28') else lv.font_montserrat_14
             ui_boot_label.set_style_text_font(font, 0)
             ui_boot_label.set_style_text_align(lv.TEXT_ALIGN.CENTER, 0)
-            ui_boot_label.set_width(800)
+            ui_boot_label.set_width(scr.get_width())
             ui_boot_label.set_style_text_color(lv.color_hex(0xFFFFFF), 0)
             ui_boot_label.align(lv.ALIGN.CENTER, 0, 0)
         
@@ -120,7 +117,7 @@ def reset_wifi_slave():
         p.value(1) # Reset ON
         time.sleep_ms(100)
         p.value(0) # Reset OFF (Run)
-        time.sleep(2) # Wait for co-processor to boot
+        time.sleep(3) # Wait for co-processor to boot
         return True
     except: return False
 
@@ -183,7 +180,7 @@ def create_ui():
     # Create a fresh screen object
     main_scr = lv.obj()
     main_scr.set_style_bg_color(lv.color_hex(0x000000), 0)
-    main_scr.set_style_bg_opa(lv.OPA.COVER, 0)
+    main_scr.set_style_bg_opa(255, 0)
     
     # Hide boot text immediately by clearing screen active if needed
     # (Actually screen_load will handle it)
@@ -253,7 +250,7 @@ def main():
     # Set background to black immediately
     scr = lv.screen_active()
     scr.set_style_bg_color(lv.color_hex(0x000000), 0)
-    scr.set_style_bg_opa(lv.OPA.COVER, 0)
+    scr.set_style_bg_opa(255, 0)
     
     board.set_backlight(1)
     

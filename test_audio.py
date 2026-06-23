@@ -12,7 +12,7 @@ def init_es8311():
     print("Probing I2C for ES8311...")
     try:
         # ES8311 is on I2C bus 0, pins 7/8
-        i2c = machine.I2C(0, sda=Pin(7), scl=Pin(8), freq=100000)
+        i2c = machine.SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000)
         devices = i2c.scan()
         print("I2C scan results:", [hex(d) for d in devices])
         if 0x18 not in devices:
@@ -180,4 +180,13 @@ def test_playback(path='/sd/gc.wav', volume=0.5):
             audio.deinit()
 
 if __name__ == "__main__":
+    # Power up the board and enable LDO4 power rails before probing I2C
+    import lvgl as lv
+    try:
+        import waveshare
+        lv.init()
+        waveshare.init()
+    except Exception as e:
+        print("Board initialization failed:", e)
+        
     test_playback('/sd/gc.wav', volume=0.3)

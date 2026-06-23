@@ -1,22 +1,44 @@
-# Elecrow-P4-Display-MPY
+# Waveshare-P4-Display-MPY (4-Inch Edition)
 
-A functional MicroPython toolkit for the Elecrow ESP32-P4 Advanced Phone (7-inch).
+A dedicated, stabilized MicroPython toolkit and firmware configuration for the **Waveshare ESP32-P4 4-inch** board.
 
-## Overview
-This repository contains the optimized firmware and Python applications for the ESP32-P4 Rev 0. It includes fixes for display stability, WiFi/Bluetooth coexistence, and core system crashes.
+## Project Purpose
+This repository is specialized for the Waveshare 4-inch MIPI display board. It is decoupled from the other variants to allow direct modifications without introducing regressions.
 
-### Key Features
-- **Web Clock**: A smooth digital clock with NTP sync and BLE advertising.
-- **Audio Support**: Working I2S/LDO configuration for the onboard amp.
-- **STC8 Integration**: Native commands for backlight and power management.
+## Firmware Binary
+The pre-compiled stabilized firmware is located in:
+- [firmware/micropython.bin](firmware/micropython.bin)
 
-## Getting Started
-1. **Flash Firmware**: Use the provided `idf.py` commands in the [walkthrough](p4_stabilization_guide.md) to build and flash the stabilized MicroPython core.
-2. **Run Apps**: 
-   ```bash
-   mpremote run web_clock.py
-   ```
+## How to Flash
+To flash the firmware, run the following command in your activated ESP-IDF shell:
+```bash
+idf.py -p <PORT> flash
+```
+Or use `esptool.py` to write the individual components (e.g. if you build locally on `C:\esp-build\ESP32-P4_MicroPython_Waveshare-4_src`):
+```bash
+esptool.py --chip esp32p4 -p <PORT> -b 1152000 write_flash 0x2000 bootloader.bin 0x8000 partition-table.bin 0x10000 micropython.bin
+```
 
-## Documentation
-- [P4 Stabilization Guide](p4_stabilization_guide.md): Critical hardware workarounds for the Revision 0 silicon.
-- [Walkthrough](walkthrough.md): Deployment and verification steps.
+---
+
+## Subcomponent Support Status
+
+| Subcomponent | Status | Pinout / Details |
+| :--- | :--- | :--- |
+| **Display** | **Done & Tested** | 4-inch MIPI DSI display, stable without blackouts. |
+| **Touch** | **Done & Tested** | GT911 capacitive touch controller on shared I2C bus (pins 7/8). |
+| **SD Card** | **Done & Tested** | Co-exists with ESP-Hosted WiFi using C-level SDMMC host sharing patch (slot=0). |
+| **WiFi / BLE** | **Done & Tested** | Concurrent WiFi and BLE NimBLE. Stabilized by reducing SDIO bus clock to 20MHz and toggling GPIO 32 hardware reset at boot. |
+| **Audio** | **Done & Tested** | Onboard ES8311 Audio Codec (I2C address 0x18, SDA:7, SCL:8). Native C initialization, volume registers, and speaker enable (GPIO 53, active high). Pins: SCK=12, WS=10, SD=9. |
+| **Camera** | **Done & Tested** | OV5647 camera sensor configuration (SDA 7, SCL 8, address 0x36). |
+| **Backlight** | **Done & Tested** | Backlight control via `waveshare` module. |
+
+---
+
+## Running Applications
+Upload your files (e.g., `main.py`, `web_clock.py`) using `mpremote`:
+```bash
+mpremote fs cp main.py :main.py
+mpremote fs cp web_clock.py :web_clock.py
+mpremote reset
+```
