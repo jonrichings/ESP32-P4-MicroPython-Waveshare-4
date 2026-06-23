@@ -1,5 +1,7 @@
 # Waveshare-P4-Display-MPY (4-Inch Edition)
 
+https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B
+
 BE AWARE THAT I AM NOT A GREAT CODER.  THESE MICROPYTHON .BIN'S WERE THE RESULT OF A LOT OF TRIAL AND ERROR AND GEMINI SHINING A PENCIL BEAM ON TRICKY BITS.  DO NOT ASSUME THIS IS A PLUG AND PLAY REPO.  IT WORKS FOR ME BUT MAY ONLY BE A STARTING POINT FOR YOU.
 
 A dedicated, stabilized MicroPython toolkit and firmware configuration for the **Waveshare ESP32-P4 4-inch** board (the little square one in a wall mount box shape.
